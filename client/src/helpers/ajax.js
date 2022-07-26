@@ -2,7 +2,7 @@ import axios from "axios";
 export default {
   install: (app) => {
     const instance = axios.create({
-      baseURL: "https://localhost:7272",
+      baseURL: import.meta.env.VITE_API_URL,
     });
     const customConfig = {
       headers: {

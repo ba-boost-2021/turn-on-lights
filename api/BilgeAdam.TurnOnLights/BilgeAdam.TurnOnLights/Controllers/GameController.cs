@@ -1,5 +1,6 @@
 using BilgeAdam.TurnOnLights.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
 
 namespace BilgeAdam.TurnOnLights.Controllers
@@ -9,9 +10,12 @@ namespace BilgeAdam.TurnOnLights.Controllers
     public class GameController : ControllerBase
     {
         private readonly IDatabase redis;
-        public GameController(IConnectionMultiplexer connection)
+        private readonly IHubContext<GameHub, IGameHub> hubContext;
+
+        public GameController(IConnectionMultiplexer connection, IHubContext<GameHub, IGameHub> hubContext)
         {
             this.redis = connection.GetDatabase();
+            this.hubContext = hubContext;
         }
         [HttpGet("users")]
         public IEnumerable<UserDto> Users()
@@ -29,7 +33,7 @@ namespace BilgeAdam.TurnOnLights.Controllers
         }
 
         [HttpPost("register")]
-        public UserDto Register([FromBody] string userName)
+        public async Task<UserDto> Register([FromBody] string userName)
         {
             var user = new UserDto
             {
@@ -43,7 +47,7 @@ namespace BilgeAdam.TurnOnLights.Controllers
             redis.HashSet($"User:{user.Id}", fields);
 
             redis.ListLeftPush("AllUsers", user.Id.ToString());
-
+            await hubContext.Clients.All.UserJoined(user.Id.ToString(), user.Name);
             return user;
         }
     }

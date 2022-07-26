@@ -12,6 +12,7 @@
     </div>
 </template>
 <script>
+import signalr from "../helpers/signalr";
 export default {
     name: "User",
     data() {
@@ -28,6 +29,13 @@ export default {
             let user = JSON.parse(session);
             this.name = user.name;
             this.id = user.id;
+            this.$store.commit("user/login", user.id);
+            let timer = setInterval(() => {
+                if (signalr.state === "Connected") {
+                    signalr.send("NewUserJoined", user.id, user.name);    
+                    clearInterval(timer);
+                }
+            }, 500);            
         }
     },
     methods: {
@@ -35,6 +43,7 @@ export default {
             this.$ajax.post("game/register", this.name).then(response => {
                 sessionStorage.setItem("session", JSON.stringify(response.data));
                 this.registered = true;
+                signalr.send("NewUserJoined", response.data.id, response.data.name);
             });
         }
     }
